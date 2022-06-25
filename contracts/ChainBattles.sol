@@ -6,25 +6,35 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 
-contract ChainBattles is ERC721URIStorage  {
+contract ChainBattles is ERC721URIStorage {
 
     using Strings for uint256;
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
-    mapping(uint256 => uint256) public tokenIdToLevels;
+    mapping(uint256 => Warrior) public tokenIdToWarriors;
 
-    constructor() ERC721 ("Chain Battles", "CBTLS"){
+    struct Warrior {
+        uint256 level;
+        uint256 speed;
+        uint256 strength;
+        uint256 life;
     }
 
-    function generateCharacter(uint256 tokenId) public returns(string memory){
+    constructor() ERC721("Chain Battles", "CBTLS"){
+    }
+
+    function generateCharacter(uint256 tokenId) public returns (string memory){
 
         bytes memory svg = abi.encodePacked(
             '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350">',
             '<style>.base { fill: white; font-family: serif; font-size: 14px; }</style>',
             '<rect width="100%" height="100%" fill="black" />',
-            '<text x="50%" y="40%" class="base" dominant-baseline="middle" text-anchor="middle">',"Warrior",'</text>',
-            '<text x="50%" y="50%" class="base" dominant-baseline="middle" text-anchor="middle">', "Levels: ",getLevels(tokenId),'</text>',
+            '<text x="50%" y="20%" class="base" dominant-baseline="middle" text-anchor="middle">', "Warrior", '</text>',
+            '<text x="50%" y="40%" class="base" dominant-baseline="middle" text-anchor="middle">', "Levels: ", getLevels(tokenId), '</text>',
+            '<text x="50%" y="50%" class="base" dominant-baseline="middle" text-anchor="middle">', "Strength: ", getStrength(tokenId), '</text>',
+            '<text x="50%" y="60%" class="base" dominant-baseline="middle" text-anchor="middle">', "Life: ", getLife(tokenId), '</text>',
+            '<text x="50%" y="70%" class="base" dominant-baseline="middle" text-anchor="middle">', "Speed: ", getSpeed(tokenId), '</text>',
             '</svg>'
         );
         return string(
@@ -36,8 +46,23 @@ contract ChainBattles is ERC721URIStorage  {
     }
 
     function getLevels(uint256 tokenId) public view returns (string memory) {
-        uint256 levels = tokenIdToLevels[tokenId];
-        return levels.toString();
+       uint256 levels = tokenIdToWarriors[tokenId].level;
+       return levels.toString();
+    }
+
+    function getStrength(uint256 tokenId) public view returns (string memory) {
+        uint256 strength = tokenIdToWarriors[tokenId].strength;
+        return strength.toString();
+    }
+
+    function getLife(uint256 tokenId) public view returns (string memory) {
+        uint256 life = tokenIdToWarriors[tokenId].life;
+        return life.toString();
+    }
+
+    function getSpeed(uint256 tokenId) public view returns (string memory) {
+        uint256 speed = tokenIdToWarriors[tokenId].speed;
+        return speed.toString();
     }
 
     function getTokenURI(uint256 tokenId) public returns (string memory){
@@ -60,15 +85,25 @@ contract ChainBattles is ERC721URIStorage  {
         _tokenIds.increment();
         uint256 newItemId = _tokenIds.current();
         _safeMint(msg.sender, newItemId);
-        tokenIdToLevels[newItemId] = 0;
+        tokenIdToWarriors[newItemId] = Warrior(random(100), random(100), random(100), random(100));
         _setTokenURI(newItemId, getTokenURI(newItemId));
     }
 
     function train(uint256 tokenId) public {
         require(_exists(tokenId));
         require(ownerOf(tokenId) == msg.sender, "You must own this NFT to train it!");
-        uint256 currentLevel = tokenIdToLevels[tokenId];
-        tokenIdToLevels[tokenId] = currentLevel + 1;
+        if(tokenIdToWarriors[tokenId].level < 100) tokenIdToWarriors[tokenId].level++;
+        if(tokenIdToWarriors[tokenId].life < 100) tokenIdToWarriors[tokenId].life++;
+        if(tokenIdToWarriors[tokenId].speed < 100) tokenIdToWarriors[tokenId].speed++;
+        if(tokenIdToWarriors[tokenId].strength < 100) tokenIdToWarriors[tokenId].strength++;
+        //tokenIdToWarriors[tokenId] = currentWarrior;
         _setTokenURI(tokenId, getTokenURI(tokenId));
     }
+
+
+    function random(uint number) public view returns (uint){
+        return uint(keccak256(abi.encodePacked(block.timestamp, block.difficulty,
+            msg.sender))) % number;
+    }
+
 }
